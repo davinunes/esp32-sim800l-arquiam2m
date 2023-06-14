@@ -14,16 +14,22 @@ TinyGsm modemGSM(SerialGSM);
 
 // TinyGSM Client for Internet connection
 TinyGsmClient client(modemGSM);
+const int      port = 80;
 
 // velocidade da serial tanto do SIM800L quanto do monitor serial
 const int BAUD_RATE = 9600;
 
 //Access point name da vivo
-const char *APN = "zap.vivo.com.br";
+const char *APN = "marketplaceiot.arqia.br";
 //Usuario, se não existir deixe em vazio
-const char *USER = "";
+const char *USER = "arqia";
 //Password, se não existir deixe em vazio
 const char *PASSWORD = "";
+
+
+// Server details
+const char server[]   = "h2o-miami.davinunes.eti.br";
+const char resource[] = "/sonda/?sensor=55&valor=2";
 
 void setup() {
   Serial.begin(115200);
@@ -31,12 +37,48 @@ void setup() {
 
   // inicia e configura o SIM800L
   setupGSM();
+
+  Serial.println("Vamos fazer uma requisição");
+
+  //Estabelecendo conexão
+  Serial.print("Connecting to ");
+  Serial.println(server);
+  if (!client.connect(server, port)) {
+    Serial.println(" fail");
+    delay(5000);
+    return;
+  }
+  Serial.println(" success");
+  // Make a HTTP GET request:
+  Serial.println("Performing HTTP GET request...");
+  client.print(String("GET ") + resource + " HTTP/1.1\r\n");
+  client.print(String("Host: ") + server + "\r\n");
+  client.print("Connection: close\r\n\r\n");
+  client.println();
+
+  Serial.println("Verifique se deu certo!");
+
+  uint32_t timeout = millis();
+  while (client.connected() && millis() - timeout < 10000L) {
+    // Print available data
+    while (client.available()) {
+      char c = client.read();
+      Serial.print(c);
+      timeout = millis();
+    }
+  }
+  Serial.println();
+
+  // Shutdown
+
+  client.stop();
+  Serial.println(F("Server disconnected"));
 }
 
 void loop() {
-  delay(1000);
-  Serial.println("LOOP!");
-  Serial.println(modemGSM.getSimStatus());
+  //delay(1000);
+ // Serial.println("LOOP!");
+  //Serial.println(modemGSM.getSimStatus());
 }
 
 // inicializa GSM
